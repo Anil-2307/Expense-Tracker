@@ -1,0 +1,134 @@
+import java.io.*;
+import java.time.LocalDate;
+import java.time.Month;
+import java.util.*;
+
+class Transaction {
+    String type;
+    String category;
+    double amount;
+    LocalDate date;
+
+    public Transaction(String type, String category, double amount, LocalDate date) {
+        this.type = type;
+        this.category = category;
+        this.amount = amount;
+        this.date = date;
+    }
+
+    @Override
+    public String toString() {
+        return type + "," + category + "," + amount + "," + date;
+    }
+}
+
+public class ExpenseTracker {
+    private static List<Transaction> transactions = new ArrayList<>();
+    private static Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        while (true) {
+            System.out.println("\n==== EXPENSE TRACKER MENU ====");
+            System.out.println("1. Add Income");
+            System.out.println("2. Add Expense");
+            System.out.println("3. View Monthly Summary");
+            System.out.println("4. Load Transactions from File");
+            System.out.println("5. Save Transactions to File");
+            System.out.println("6. Exit");
+            System.out.print("Enter choice: ");
+
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // clear newline
+
+            switch (choice) {
+                case 1 -> addTransaction("INCOME");
+                case 2 -> addTransaction("EXPENSE");
+                case 3 -> viewMonthlySummary();
+                case 4 -> loadFromFile();
+                case 5 -> saveToFile();
+                case 6 -> {
+                    System.out.println("Exiting... Thank you!");
+                    return;
+                }
+                default -> System.out.println("Invalid choice! Try again.");
+            }
+        }
+    }
+
+    private static void addTransaction(String type) {
+        System.out.print("Enter category (" + (type.equals("INCOME") ? "Salary/Business" : "Food/Rent/Travel") + "): ");
+        String category = scanner.nextLine();
+
+        System.out.print("Enter amount: ");
+        double amount = scanner.nextDouble();
+        scanner.nextLine(); // clear newline
+
+        System.out.print("Enter date (YYYY-MM-DD): ");
+        LocalDate date = LocalDate.parse(scanner.nextLine());
+
+        transactions.add(new Transaction(type, category, amount, date));
+        System.out.println(type + " recorded successfully!");
+    }
+
+    private static void viewMonthlySummary() {
+        Map<Month, Double> incomeMap = new HashMap<>();
+        Map<Month, Double> expenseMap = new HashMap<>();
+
+        for (Transaction t : transactions) {
+            Month month = t.date.getMonth();
+            if (t.type.equals("INCOME")) {
+                incomeMap.put(month, incomeMap.getOrDefault(month, 0.0) + t.amount);
+            } else if (t.type.equals("EXPENSE")) {
+                expenseMap.put(month, expenseMap.getOrDefault(month, 0.0) + t.amount);
+            }
+        }
+
+        System.out.println("\n=== Monthly Summary ===");
+        for (Month month : Month.values()) {
+            double income = incomeMap.getOrDefault(month, 0.0);
+            double expense = expenseMap.getOrDefault(month, 0.0);
+            double balance = income - expense;
+            if (income > 0 || expense > 0) {
+                System.out.printf("%s - Income: ₹%.2f, Expense: ₹%.2f, Balance: ₹%.2f%n", month, income, expense, balance);
+            }
+        }
+    }
+
+    private static void loadFromFile() {
+        System.out.print("Enter filename to load (e.g., input.txt): ");
+        String filename = scanner.nextLine();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+            String line;
+            int count = 0;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 4) {
+                    String type = parts[0].trim();
+                    String category = parts[1].trim();
+                    double amount = Double.parseDouble(parts[2].trim());
+                    LocalDate date = LocalDate.parse(parts[3].trim());
+                    transactions.add(new Transaction(type, category, amount, date));
+                    count++;
+                }
+            }
+            System.out.println(count + " transactions loaded from file.");
+        } catch (IOException e) {
+            System.out.println("Error loading file: " + e.getMessage());
+        }
+    }
+
+    private static void saveToFile() {
+        System.out.print("Enter filename to save (e.g., output.txt): ");
+        String filename = scanner.nextLine();
+
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
+            for (Transaction t : transactions) {
+                writer.println(t);
+            }
+            System.out.println("Transactions saved to " + filename);
+        } catch (IOException e) {
+            System.out.println("Error saving file: " + e.getMessage());
+        }
+    }
+}
